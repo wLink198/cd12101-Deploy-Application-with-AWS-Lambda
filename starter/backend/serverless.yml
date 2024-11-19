@@ -1,59 +1,141 @@
+org: bqlorg
+app: serverless-todo-app
 service: serverless-todo-app
 
 plugins:
   - serverless-iam-roles-per-function
 
-frameworkVersion: '3'
 
 provider:
   name: aws
-  runtime: nodejs14.x
+  runtime: nodejs16.x
+  region: us-east-1
+  environment:
+    TODOS_TABLE: "Todos"
+    TODOS_CREATED_AT_INDEX: CreatedAtIndex
+    S3_BUCKET: 'my-todo-app-bucket'
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "dynamodb:Query"
+        - "dynamodb:Scan"
+        - "dynamodb:GetItem"
+        - "dynamodb:UpdateItem"
+        - "dynamodb:PutItem"
+        - "dynamodb:DeleteItem"
+      Resource:
+        - arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+    - Effect: "Allow"
+      Action:
+        - "s3:*"
+      Resource:
+        - arn:aws:s3:::${self:provider.environment.S3_BUCKET}/*
 
 functions:
-
   Auth:
     handler: src/lambda/auth/auth0Authorizer.handler
 
-  # TODO: Configure this function
+  # Get Todos for a user
   GetTodos:
     handler: src/lambda/http/getTodos.handler
     events:
       - http:
           method: get
           path: todos
+          cors: true
+          authorizer: Auth
+    environment:
+      TODOS_TABLE: ${self:provider.environment.TODOS_TABLE}
 
-  # TODO: Configure this function
+  # Create a new Todo
   CreateTodo:
     handler: src/lambda/http/createTodo.handler
     events:
       - http:
           method: post
           path: todos
+          cors: true
+          authorizer: Auth
+    environment:
+      TODOS_TABLE: ${self:provider.environment.TODOS_TABLE}
 
-  # TODO: Configure this function
+  # Update an existing Todo
   UpdateTodo:
     handler: src/lambda/http/updateTodo.handler
     events:
       - http:
           method: patch
           path: todos/{todoId}
+          cors: true
+          authorizer: Auth
+    environment:
+      TODOS_TABLE: ${self:provider.environment.TODOS_TABLE}
 
-  # TODO: Configure this function
+  # Delete a Todo
   DeleteTodo:
     handler: src/lambda/http/deleteTodo.handler
     events:
       - http:
           method: delete
           path: todos/{todoId}
+          cors: true
+          authorizer: Auth
+    environment:
+      TODOS_TABLE: ${self:provider.environment.TODOS_TABLE}
 
-  # TODO: Configure this function
+  # Generate Upload URL for Todo attachment
   GenerateUploadUrl:
     handler: src/lambda/http/generateUploadUrl.handler
     events:
       - http:
           method: post
           path: todos/{todoId}/attachment
+          cors: true
+          authorizer: Auth
+    environment:
+      TODOS_TABLE: ${self:provider.environment.TODOS_TABLE}
 
 resources:
   Resources:
-    # TODO: Add any necessary AWS resources
+    TodosTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.TODOS_TABLE}
+        AttributeDefinitions:
+          - AttributeName: "userId"
+            AttributeType: "S"
+          - AttributeName: "todoId"
+            AttributeType: "S"
+          - AttributeName: createdAt
+            AttributeType: S
+        KeySchema:
+          - AttributeName: "userId"
+            KeyType: "HASH"
+          - AttributeName: "todoId"
+            KeyType: "RANGE"
+        BillingMode: PAY_PER_REQUEST
+        LocalSecondaryIndexes:
+          - IndexName: ${self:provider.environment.TODOS_CREATED_AT_INDEX}
+            KeySchema:
+              - AttributeName: userId
+                KeyType: HASH
+              - AttributeName: createdAt
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL # What attributes will be copied to an index
+    # S3 Bucket for storing attachments
+    TodoAttachmentsBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:provider.environment.S3_BUCKET}
+        AccessControl: Public
+        CorsConfiguration:
+          CorsRules:
+            - AllowedOrigins:
+                - "*"  # Allow all origins
+              AllowedMethods:
+                - GET
+                - POST
+                - PUT
+              AllowedHeaders:
+                - "*"

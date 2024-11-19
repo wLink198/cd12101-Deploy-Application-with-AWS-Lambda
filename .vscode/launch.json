@@ -1,0 +1,20 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Launch Chrome against localhost",
+            "url": "http://localhost:3000",
+            "webRoot": "${workspaceFolder}",
+            "env": {
+                "REACT_APP_AUTH0_DOMAIN": "dev-lc6f3dh3pnr07h5z.us.auth0.com",
+                "REACT_APP_AUTH0_CLIENT_ID": "QViMhABqUn1LxmSbKQf5WhEGgVPmv87n",
+                "REACT_APP_API_ENDPOINT": "https://kho753tutg.execute-api.us-east-1.amazonaws.com/dev"
+            }
+        }
+    ]
+}

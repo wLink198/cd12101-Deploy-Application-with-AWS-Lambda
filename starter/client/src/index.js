@@ -12,7 +12,7 @@ ReactDOM.render(
     domain={domain}
     clientId={clientId}
     redirectUri={window.location.origin}
-    audience={`https://${domain}/api/v2/`}
+    audience={`api-for-pj4`}
     scope="read:todo write:todo delete:todo"
   >
     <App />
