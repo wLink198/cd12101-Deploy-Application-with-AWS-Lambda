@@ -1,11 +1,10 @@
 import middy from '@middy/core';
 import cors from '@middy/http-cors';
 import httpErrorHandler from '@middy/http-error-handler';
-import { DynamoDBClient, QueryCommand } from '@aws-sdk/client-dynamodb';
 import { createLogger } from '../../utils/logger.mjs';
+import { svcList } from '../../service/todoService.mjs';
 
 const logger = createLogger('getTodos');
-const dynamoDbClient = new DynamoDBClient({ region: process.env.AWS_REGION });
 
 const getTodos = async (event) => {
   // Extract userId from the JWT token (assuming it's available in requestContext.authorizer.principalId)
@@ -20,16 +19,8 @@ const getTodos = async (event) => {
     };
   }
 
-  const params = {
-    TableName: process.env.TODOS_TABLE,
-    KeyConditionExpression: 'userId = :userId',
-    ExpressionAttributeValues: {
-      ':userId': { S: userId },
-    },
-  };
-
   try {
-    const result = await dynamoDbClient.send(new QueryCommand(params));
+    const result = await svcList({ userId: userId })
     let items = [];
 
     if (result.Items && result.Items.length > 0) {

@@ -1,11 +1,10 @@
 import middy from '@middy/core';
 import cors from '@middy/http-cors';
 import httpErrorHandler from '@middy/http-error-handler';
-import { DynamoDBClient, DeleteItemCommand } from '@aws-sdk/client-dynamodb';
 import { createLogger } from '../../utils/logger.mjs';
+import { svcDelete } from '../../service/todoService.mjs';
 
 const logger = createLogger('deleteTodo');
-const dynamoDbClient = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
 
 const deleteTodo = async (event) => {
   const todoId = event.pathParameters.todoId;  // Get todoId from path parameter
@@ -22,18 +21,8 @@ const deleteTodo = async (event) => {
     };
   }
 
-  // Set up the parameters for DynamoDB delete operation
-  const params = {
-    TableName: process.env.TODOS_TABLE,
-    Key: {
-      userId: { S: userId },
-      todoId: { S: todoId },
-    },
-  };
-
   try {
-    const command = new DeleteItemCommand(params);
-    await dynamoDbClient.send(command);
+    await svcDelete({ todoId: todoId, userId: userId })
 
     // Return an empty response body for successful delete
     return {
