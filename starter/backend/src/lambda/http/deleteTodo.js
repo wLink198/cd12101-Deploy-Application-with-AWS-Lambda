@@ -3,10 +3,18 @@ import cors from '@middy/http-cors';
 import httpErrorHandler from '@middy/http-error-handler';
 import { createLogger } from '../../utils/logger.mjs';
 import { svcDelete } from '../../service/todoService.mjs';
+import AWSXRay from 'aws-xray-sdk-core';
+import AWS from 'aws-sdk';
+
+// Capture AWS SDK requests for tracing
+AWSXRay.captureAWS(AWS);
 
 const logger = createLogger('deleteTodo');
 
 const deleteTodo = async (event) => {
+  // Start a new subsegment for this Lambda request
+  const segment = AWSXRay.getSegment();
+
   const todoId = event.pathParameters.todoId;  // Get todoId from path parameter
 
   // Get the userId from the JWT token (auth0Authorizer should have already validated the token)
@@ -24,6 +32,8 @@ const deleteTodo = async (event) => {
   try {
     await svcDelete({ todoId: todoId, userId: userId })
 
+    segment.addAnnotation('todo deleted', { todoId, userId });
+
     // Return an empty response body for successful delete
     return {
       statusCode: 200,
@@ -31,10 +41,17 @@ const deleteTodo = async (event) => {
     };
   } catch (error) {
     logger.error('Error deleting TODO item', error);
+    segment.addError(error);
+
     return {
       statusCode: 500,
       body: JSON.stringify({ message: 'Error deleting TODO item' }),
     };
+  } finally {
+    // End the subsegment for this function execution
+    if (segment) {
+      segment.close();
+    }
   }
 };
 

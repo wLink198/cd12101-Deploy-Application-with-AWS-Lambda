@@ -3,10 +3,18 @@ import cors from '@middy/http-cors';
 import httpErrorHandler from '@middy/http-error-handler';
 import { createLogger } from '../../utils/logger.mjs';
 import { svcUpload } from '../../service/uploadService.mjs';
+import AWSXRay from 'aws-xray-sdk-core';
+import AWS from 'aws-sdk';
+
+// Capture AWS SDK requests for tracing
+AWSXRay.captureAWS(AWS);
 
 const logger = createLogger('generateUploadUrl');
 
 const generateUploadUrl = async (event) => {
+  // Start a new subsegment for this Lambda request
+  const segment = AWSXRay.getSegment();
+
   const userId = event.requestContext.authorizer.principalId;
   logger.info('Processing generateUploadUrl request', { userId });
 
@@ -27,6 +35,8 @@ const generateUploadUrl = async (event) => {
     // Generate the pre-signed URL using getSignedUrl
     const uploadUrl = await svcUpload(fileName);
 
+    segment.addAnnotation('file uploaded', fileName);
+
     // Return the pre-signed URL in the response
     return {
       statusCode: 200,
@@ -36,10 +46,17 @@ const generateUploadUrl = async (event) => {
     };
   } catch (error) {
     logger.error('Error generating upload URL', error);
+    segment.addError(error);
+
     return {
       statusCode: 500,
       body: JSON.stringify({ message: 'Error generating upload URL' }),
     };
+  } finally {
+    // End the subsegment for this function execution
+    if (segment) {
+      segment.close();
+    }
   }
 };
 

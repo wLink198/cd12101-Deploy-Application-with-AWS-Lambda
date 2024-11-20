@@ -3,10 +3,18 @@ import cors from '@middy/http-cors';
 import httpErrorHandler from '@middy/http-error-handler';
 import { createLogger } from '../../utils/logger.mjs';
 import { svcList } from '../../service/todoService.mjs';
+import AWSXRay from 'aws-xray-sdk-core';
+import AWS from 'aws-sdk';
+
+// Capture AWS SDK requests for tracing
+AWSXRay.captureAWS(AWS);
 
 const logger = createLogger('getTodos');
 
 const getTodos = async (event) => {
+  // Start a new subsegment for this Lambda request
+  const segment = AWSXRay.getSegment();
+
   // Extract userId from the JWT token (assuming it's available in requestContext.authorizer.principalId)
   const userId = event.requestContext.authorizer.principalId;
   logger.info('Processing getTodos request', { userId });
@@ -36,16 +44,25 @@ const getTodos = async (event) => {
       }));
     }
 
+    segment.addAnnotation('totalTodos', items.length);
+
     return {
       statusCode: 200,
       body: JSON.stringify({ items }),
     };
   } catch (error) {
     logger.error('Error fetching todos', { error: error.message });
+    segment.addError(error);
+
     return {
       statusCode: 500,
       body: JSON.stringify({ message: 'Error fetching todos' }),
     };
+  } finally {
+    // End the subsegment for this function execution
+    if (segment) {
+      segment.close();
+    }
   }
 };
 

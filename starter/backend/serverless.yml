@@ -4,6 +4,7 @@ service: serverless-todo-app
 
 plugins:
   - serverless-iam-roles-per-function
+  - serverless-plugin-tracing
 
 provider:
   name: aws
@@ -17,7 +18,7 @@ provider:
 functions:
   Auth:
     handler: src/lambda/auth/auth0Authorizer.handler
-    tracing: Active
+    tracing: true
     iamRoleStatements:
       - Effect: "Allow"
         Action:
@@ -36,7 +37,7 @@ functions:
           authorizer: Auth
     environment:
       TODOS_TABLE: ${self:provider.environment.TODOS_TABLE}
-    tracing: Active
+    tracing: true
     iamRoleStatements:
       - Effect: "Allow"
         Action:
@@ -62,7 +63,7 @@ functions:
           authorizer: Auth
     environment:
       TODOS_TABLE: ${self:provider.environment.TODOS_TABLE}
-    tracing: Active
+    tracing: true
     iamRoleStatements:
       - Effect: "Allow"
         Action:
@@ -86,7 +87,7 @@ functions:
           authorizer: Auth
     environment:
       TODOS_TABLE: ${self:provider.environment.TODOS_TABLE}
-    tracing: Active
+    tracing: true
     iamRoleStatements:
       - Effect: "Allow"
         Action:
@@ -110,7 +111,7 @@ functions:
           authorizer: Auth
     environment:
       TODOS_TABLE: ${self:provider.environment.TODOS_TABLE}
-    tracing: Active
+    tracing: true
     iamRoleStatements:
       - Effect: "Allow"
         Action:
@@ -134,7 +135,7 @@ functions:
           authorizer: Auth
     environment:
       TODOS_TABLE: ${self:provider.environment.TODOS_TABLE}
-    tracing: Active
+    tracing: true
     iamRoleStatements:
       - Effect: "Allow"
         Action:
